@@ -1,0 +1,42 @@
+#content {
+    text-align: center;
+    width: 1024px;
+}
+
+#item_table {
+    border-collapse: collapse;
+    font-size: 90%;
+    margin: 1em;
+    margin-left: auto;
+    margin-right: auto;
+}
+#item_table th {
+    background: #88ccdd;
+}
+#item_table td,th {
+    border: solid 1px #aaaaaa;
+    padding: 0.3em;
+}
+// THIS DOES NOT WORK
+//#item_table_info {
+//    display: block;
+//    margin-left: auto;
+//    margin-right: auto;
+//}
+#item_table_paginate a {
+    cursor: pointer;
+    color: #7788aa;
+    margin: 0 0.1em 0 0.1em;
+    padding: 0 0.2em 0 0.2em;
+}
+#item_table_paginate a:hover {
+    background: #dddddd;
+}
+
+#loading {
+    font-size: 200%;
+    width: 100%;
+    height: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}

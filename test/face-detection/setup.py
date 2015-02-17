@@ -19,7 +19,7 @@ def run_script(name):
 
 def main():
     print("Downloading test images...")
-    #run_script("download_test_images.py")
+    run_script("download_test_images.py")
 
     print("Running face detector...")
     run_script("detect_faces.py")

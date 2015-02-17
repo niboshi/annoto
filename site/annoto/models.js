@@ -262,13 +262,26 @@ window.annoto.models = window.annoto.models || (function(self, $) {
 
         cls.prototype.get_model_data = function() {
             var T = this;
-            return [T.p1, T.p2];
+            if (T.p1 && T.p2) {
+                var x = Math.min(T.p1[0], T.p2[0]);
+                var y = Math.min(T.p1[1], T.p2[1]);
+                var w = Math.abs(T.p2[0] - T.p1[0]);
+                var h = Math.abs(T.p2[1] - T.p1[1]);
+                return [x, y, w, h];
+            } else {
+                return null;
+            }
         };
 
         cls.prototype.set_model_data = function(model_data) {
             var T = this;
-            T.p1 = model_data[0];
-            T.p2 = model_data[1];
+            if (model_data == null) {
+                T.p1 = T.p2 = null;
+            } else {
+                var m = model_data;
+                T.p1 = [m[0], m[1]];
+                T.p2 = [m[0] + m[2], m[1] + m[3]];
+            }
         };
 
 

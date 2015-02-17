@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import os
 import urllib
 
@@ -10,7 +10,7 @@ urls = [
 ]
 
 def main():
-    out_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "files")
+    out_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "images")
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
 

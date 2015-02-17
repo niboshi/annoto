@@ -1,0 +1,4 @@
+annoto.port: 8080
+annoto.document_root: ../../site
+annoto.database_dir: ./db
+files_dir: ./images

@@ -10,8 +10,7 @@ class Item(annoto.Item):
         super(Item, self).__init__(*args, **kwargs)
 
     def get_image_path(self):
-        dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "files")
-        return os.path.join(dir, self.pk)
+        return os.path.join(self.server.get_files_dir(), self.pk)
 
     def get_thumb_image(self):
         try:
@@ -22,6 +21,8 @@ class Item(annoto.Item):
         tw, th = 80, 60
 
         path = self.get_image_path()
+        if isinstance(path, unicode):
+            path = path.encode('utf8')
         im = cv2.imread(path)
         w, h = im.shape[1::-1]
         if w * th > tw * h:
@@ -41,9 +42,13 @@ class Item(annoto.Item):
 class Server(annoto.Server):
     item_cls = Item
 
+    def get_files_dir(self):
+        files_dir = self.config.get('files_dir', "./images")
+        files_dir = os.path.realpath(os.path.join(self.root_dir, files_dir))
+        return files_dir
+
     def get_item_pks(self):
-        dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "files")
-        filenames = os.listdir(dir)
+        filenames = os.listdir(self.get_files_dir())
         return filenames
 
     def request_api(self, path, handler, qs):

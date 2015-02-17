@@ -26,10 +26,12 @@ def path_to_mime_type(path):
 class Item(object):
     fields = ['pk', 'mime_type', 'display', 'model_data']
 
-    def __init__(self, pk=None, display=None, mime_type=None, model_data=None):
+    def __init__(self, server, pk=None, display=None, mime_type=None, model_data=None):
+        assert server is not None
         for key in self.__class__.fields:
             setattr(self, key, None)
 
+        self.server = server
         self.pk = pk
         self.display = display
         self.mime_type = mime_type
@@ -41,7 +43,6 @@ class Item(object):
 
     def to_dict(self):
         data = dict((_,getattr(self, _)) for _ in self.__class__.fields)
-        data['pk'] = bytes(data['pk'])
         return data
 
     def get_image_path(self):
@@ -71,7 +72,10 @@ class Item(object):
 
 
 class Database(object):
-    def __init__(self, dirname, item_cls=None):
+    def __init__(self, server, dirname, item_cls=None):
+        assert server is not None
+
+        self.server = server
         self.dir = dirname
         self.item_cls = item_cls
 
@@ -87,7 +91,7 @@ class Database(object):
             data = {
                 'pk': pk,
             }
-        item = self.item_cls(**data)
+        item = self.item_cls(self.server, **data)
         return item
 
     def write_item(self, item):
@@ -164,13 +168,22 @@ class Server(object):
 
     def __init__(self):
         self.config = None
+        self.root_dir = None
 
-    def setup(self, config):
+    def setup(self, root_dir):
+        config_file = os.path.join(root_dir, "server-config.yml")
+
+        if not os.path.isfile(config_file):
+            raise RuntimeError("Server config file not found: {}".format(config_file))
+
+        config = ServerConfig(config_file)
+
+        self.root_dir = root_dir
         self.config = config
 
     def get_database(self):
-        db_dir = self.config.get_path('database_dir')
-        return Database(db_dir, item_cls=self.__class__.item_cls)
+        db_dir = self.config.get_path('annoto.database_dir')
+        return Database(self, db_dir, item_cls=self.__class__.item_cls)
 
     def get_item_pks(self):
         raise NotImplementedError()
@@ -182,8 +195,7 @@ class Server(object):
         return items
 
     def translate_path(self, path):
-        document_root = self.config.get_path('document_root')
-        document_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', document_root)
+        document_root = self.config.get_path('annoto.document_root')
         path = urlparse.urlparse(path).path
         path = os.path.join(document_root, path[1:])
         return path
@@ -233,8 +245,8 @@ class Server(object):
         return False
 
     def run(self):
-        hostname = self.config.get('hostname', "")
-        port = self.config.get('port', 8080)
+        hostname = self.config.get('annoto.hostname', "")
+        port = self.config.get('annoto.port', 8080)
         tcp_server = TCPServer((hostname, port), self.__class__.handler_cls)
         try:
             tcp_server.serve_forever()
@@ -262,21 +274,11 @@ class ServerConfig(object):
 
     def get_path(self, key):
         path = self.data[key]
-        path = os.path.join(self.config_dir, path)
+        path = os.path.realpath(os.path.join(self.config_dir, path))
         return path
 
 
-def run_server(server, server_config_file):
-    if server_config_file is None:
-        server_config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'server-config.yml')
-
-    if not os.path.isfile(server_config_file):
-        raise RuntimeError("Server config file not found: {}".format(server_config_file))
-
-    server_config = ServerConfig(server_config_file)
-
-    server.setup(server_config)
-
+def run_server(server):
     global SERVER
     SERVER = server
 
@@ -284,13 +286,11 @@ def run_server(server, server_config_file):
 
 
 def run(args, server=None):
-    parser = argparse.ArgumentParser(description="Server")
-    parser.add_argument('--config', type=str, default=None)
+    parser = argparse.ArgumentParser(description="Sample Server")
+    parser.add_argument('--root', type=str, required=True, help="Server root directory where server-config.yml settles.")
     a = parser.parse_args(args)
 
-    if a.config:
-        config_file = os.path.abspath(a.config)
-    else:
-        config_file = None
+    root_dir = os.path.abspath(a.root)
 
-    run_server(server, config_file)
+    server.setup(root_dir)
+    run_server(server)

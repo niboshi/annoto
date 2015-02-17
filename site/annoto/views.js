@@ -98,18 +98,33 @@ window.annoto.views = window.annoto.views || (function(self, $) {
 
         cls.prototype.set_image = function(image) {
             var T = this;
-            var $back_canvas = $("<canvas>")
-                .attr({ "width": T.$canvas.width(), "height": T.$canvas.height() });
-            var back_canvas = $back_canvas[0];
-            var ctx = back_canvas.getContext("2d");
+            var cw = T.$canvas.width();
+            var ch = T.$canvas.height();
             var iw = image.width;
             var ih = image.height;
-            var cw = back_canvas.width;
-            var ch = back_canvas.height;
-            ctx.drawImage(image, 0, 0, iw, ih, 0, 0, cw, ch);
+            var bcw, bch;
+            var scale;
+            if (ch * iw > cw * ih) {
+                scale = 1. * cw / iw;
+            } else {
+                scale = 1. * ch / ih;
+            }
+            var bcw = scale * iw, bch = scale * ih;
+
+            var $back_canvas = T.$back_canvas;
+
+            if (!$back_canvas) {
+                $back_canvas = $("<canvas>");
+            }
+            $back_canvas
+                .attr({ "width": bcw, "height": bch });
+
+            var ctx = $back_canvas[0].getContext("2d");
+            ctx.drawImage(image, 0, 0, iw, ih, 0, 0, bcw, bch);
 
             T.image = image;
             T.$back_canvas = $back_canvas;
+            T.scale = scale;
             T.draw();
         };
 
@@ -126,43 +141,47 @@ window.annoto.views = window.annoto.views || (function(self, $) {
             var ch = T.$canvas.height();
             ctx.clearRect(0, 0, cw, ch);
             if (T.$back_canvas) {
-                ctx.drawImage(T.$back_canvas[0], 0, 0);
-            }
-            if (T.viewport && T.image) {
-                var iw = T.image.width;
-                var ih = T.image.height;
-                var viewport = T.viewport;
-                var scale_x = 1.0 * T.$canvas.width() / iw;
-                var scale_y = 1.0 * T.$canvas.height() / ih;
-                ctx.save();
+                var back_canvas = T.$back_canvas[0];
+                var dx = (cw - back_canvas.width) / 2;
+                var dy = (ch - back_canvas.height) / 2;
+                ctx.drawImage(back_canvas, dx, dy);
 
-                var p1 = viewport.inv_transform(0, 0);
-                var p2 = viewport.inv_transform(viewport.cw, viewport.ch);
-                var x1 = p1[0] * scale_x;
-                var y1 = p1[1] * scale_y;
-                var x2 = p2[0] * scale_x;
-                var y2 = p2[1] * scale_y;
+                if (T.viewport && T.image) {
+                    var iw = T.image.width;
+                    var ih = T.image.height;
+                    var viewport = T.viewport;
+                    var scale_x = T.scale;
+                    var scale_y = T.scale;
+                    ctx.save();
 
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.lineTo(cw, 0);
-                ctx.lineTo(cw, ch);
-                ctx.lineTo(0, ch);
-                ctx.lineTo(0, 0);
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x1, y2);
-                ctx.lineTo(x2, y2);
-                ctx.lineTo(x2, y1);
-                ctx.lineTo(x1, y1);
-                ctx.closePath();
-                ctx.clip();
-                ctx.fillStyle = "rgba(40, 40, 40, 0.7)";
-                ctx.fillRect(0, 0, cw, ch);
+                    var p1 = viewport.inv_transform(0, 0);
+                    var p2 = viewport.inv_transform(viewport.cw, viewport.ch);
+                    var x1 = p1[0] * scale_x + dx;
+                    var y1 = p1[1] * scale_y + dy;
+                    var x2 = p2[0] * scale_x + dx;
+                    var y2 = p2[1] * scale_y + dy;
 
-                ctx.lineWidth = 3.;
-                ctx.strokeStyle = "#ffffff";
-                ctx.strokeRect(x1, y1, x2-x1, y2-y1);
-                ctx.restore();
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(cw, 0);
+                    ctx.lineTo(cw, ch);
+                    ctx.lineTo(0, ch);
+                    ctx.lineTo(0, 0);
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x1, y2);
+                    ctx.lineTo(x2, y2);
+                    ctx.lineTo(x2, y1);
+                    ctx.lineTo(x1, y1);
+                    ctx.closePath();
+                    ctx.clip();
+                    ctx.fillStyle = "rgba(40, 40, 40, 0.7)";
+                    ctx.fillRect(0, 0, cw, ch);
+
+                    ctx.lineWidth = 3.;
+                    ctx.strokeStyle = "#ffffff";
+                    ctx.strokeRect(x1, y1, x2-x1, y2-y1);
+                    ctx.restore();
+                }
             }
         };
 

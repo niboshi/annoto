@@ -1,5 +1,6 @@
 import os
 import argparse
+import importlib
 import yaml
 import json
 import re
@@ -169,6 +170,7 @@ class Server(object):
     def __init__(self):
         self.config = None
         self.root_dir = None
+        self.plugins = None
 
     def setup(self, root_dir):
         config_file = os.path.join(root_dir, "server-config.yml")
@@ -178,8 +180,21 @@ class Server(object):
 
         config = ServerConfig(config_file)
 
+        # plugins
+        plugins = []
+        plugin_names = config.get('annoto.plugins', [])
+        print(plugin_names)
+        for plugin_name in plugin_names:
+            print("Loading plugin {}...".format(plugin_name))
+            mod = importlib.import_module(plugin_name)
+            cls = getattr(mod, mod.plugin_class)
+            plugin = cls()
+            plugins.append(plugin)
+        print("Plugins have been loaded.")
+
         self.root_dir = root_dir
         self.config = config
+        self.plugins = plugins
 
     def get_database(self):
         db_dir = self.config.get_path('annoto.database_dir')
@@ -240,7 +255,14 @@ class Server(object):
                 for key,val in keyvals.items():
                     item.set_field(key, val)
                 db.write_item(item)
-            return  True
+            handler.send_data("", "text/plain");
+            return True
+
+        elif path.startswith('plugin/'):
+            for plugin in self.plugins:
+                processed = plugin.request_api(self, path, handler, qs)
+                if processed:
+                    return True
 
         return False
 

@@ -276,7 +276,7 @@ window.annoto.views = window.annoto.views || (function(self, $) {
                                 T.__completed = true;
                             }
                             if (data.need_redraw) {
-                                T.drawCanvas();
+                                T.draw();
                             }
                         }
 
@@ -340,13 +340,13 @@ window.annoto.views = window.annoto.views || (function(self, $) {
                         .click(function() {
                             var pk = T.pk;
                             if (pk) {
+                                T.message("Saving...");
                                 var model_data = T.model.get_model_data();
                                 var qdata = {
                                     "json": JSON.stringify([[pk, {
                                         "model_data": model_data,
                                     }]])
                                 };
-                                //var update_url = common.toplevel + "/api/update_item?" + common.encodeQueryParameters(qdata);
                                 var update_url = common.toplevel + "/api/update_item";
                                 $.ajax(
                                     update_url,
@@ -355,7 +355,9 @@ window.annoto.views = window.annoto.views || (function(self, $) {
                                         "data": qdata,
                                     }
                                 ).done(function() {
-                                    console.log("Successfully updated item: " + pk);
+                                    T.message("Item has been updated successfully: " + pk);
+                                }).fail(function() {
+                                    T.message("Item failed to update.");
                                 });
                             }
                         })
@@ -365,7 +367,7 @@ window.annoto.views = window.annoto.views || (function(self, $) {
                         .click(function() {
                             if (confirm("Clearing annotations of this image.\nAre you sure?")) {
                                 T.set_new_model();
-                                T.drawCanvas();
+                                T.draw();
                             }
                         })
                        )
@@ -413,7 +415,7 @@ window.annoto.views = window.annoto.views || (function(self, $) {
             var $img = $("<img>");
 
             $img
-                .load(function() { T.drawCanvas(); });
+                .load(function() { T.draw(); });
 
             $e
                 .append($left_sidebar)
@@ -424,14 +426,17 @@ window.annoto.views = window.annoto.views || (function(self, $) {
             T.$e = $e;
             T.$canvas = $canvas;
             T.$img = $img;
+            T.$menu = $menu;
             T.pk = null;
             T.viewport = null;
             T.model = null;
             T.model_class = data.model_class;
             T.model_args = data.model_args || [];
             T.thumb_view = thumb_view;
+            T.plugins = [];
 
             T.update_canvas_size();
+            T.init_plugins(data.plugins || []);
         };
 
         cls.prototype.set_new_model = function() {
@@ -440,6 +445,16 @@ window.annoto.views = window.annoto.views || (function(self, $) {
             T.model = new factory();
             T.set_model(T.model);
         };
+
+        cls.prototype.init_plugins = function(plugin_cls_list) {
+            var T = this;
+            for (var i = 0; i < plugin_cls_list.length; ++i) {
+                var plugin_cls = plugin_cls_list[i];
+                var plugin = new plugin_cls();
+                plugin.setup(T);
+                T.plugins.push(plugin);
+            }
+        }
 
         cls.prototype.update_canvas_size = function() {
             var T = this;
@@ -490,6 +505,11 @@ window.annoto.views = window.annoto.views || (function(self, $) {
                 });
         };
 
+        cls.prototype.message = function(message) {
+            var T = this;
+            console.log(message);
+        };
+
         cls.prototype.inputPoint = function(bstates) {
             var T = this;
             var pos = bstates.currentPos;
@@ -502,7 +522,7 @@ window.annoto.views = window.annoto.views || (function(self, $) {
                 T.__completed = true;
             }
             if (data.need_redraw) {
-                T.drawCanvas();
+                T.draw();
             }
         };
 
@@ -549,10 +569,10 @@ window.annoto.views = window.annoto.views || (function(self, $) {
         cls.prototype.on_viewport_update = function() {
             var T = this;
             T.thumb_view.set_viewport(T.viewport);
-            T.drawCanvas();
+            T.draw();
         };
 
-        cls.prototype.drawCanvas = function() {
+        cls.prototype.draw = function() {
             var T = this;
             var $canvas = T.$canvas;
             var ctx = $canvas[0].getContext("2d");

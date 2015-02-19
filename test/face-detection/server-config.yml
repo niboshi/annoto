@@ -1,4 +1,6 @@
 annoto.port: 8080
 annoto.document_root: ../../site
 annoto.database_dir: ./db
+annoto.plugins:
+- annoto.plugins.face_detection
 files_dir: ./images

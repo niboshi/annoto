@@ -113,7 +113,6 @@ window.annoto.models = window.annoto.models || (function(self, $) {
                 if (model == T.current_model) {
                     d["current"] = true;
                 }
-                console.log(d);
                 d_finished.push(d);
             }
             return d_finished;
